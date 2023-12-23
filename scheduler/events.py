@@ -19,26 +19,26 @@ class Event:
         self.qnumber_ = qnumber
 
     def __repr__(self) -> str:
-        return "{0:3} : {1:10} {2:1}".format(
+        return "{0:4} : {1:10} {2:1}".format(
             self.timestamp_, self.type_, self.qnumber_
         )
 
     def type_gt_(self, other):
         if self.type_ == EVENT_CHANGE_TYPE_EN:
-            return True
+            return False
         if other.type == EVENT_CHANGE_TYPE_EN:
-            return False
+            return True
         if self.type_ == EVENT_CHANGE_TYPE_ST:
-            return True
+            return False
         if other.type == EVENT_CHANGE_TYPE_ST:
-            return False
+            return True
         if self.type_ == EVENT_UNLOAD:
-            return True
-        if other.type == EVENT_UNLOAD:
             return False
-        if self.type_ == EVENT_LOAD:
+        if other.type == EVENT_UNLOAD:
             return True
-        return False
+        if self.type_ == EVENT_ARRIVE:
+            return False
+        return True
 
     def __gt__(self, other) -> bool:
         if self.timestamp_ == other.timestamp_:

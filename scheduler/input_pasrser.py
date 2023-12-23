@@ -1,5 +1,10 @@
 import csv
+import logging
 
+from scheduler.common import get_default_logger
+
+logger = get_default_logger(__name__)
+logger.setLevel(logging.INFO)
 
 class InputParser:
     """
@@ -18,22 +23,35 @@ class InputParser:
         _fn means filenames of tables
         """
         self.arrivals = []
+        logger.info('==== arrivals ====')
+        logger.info('time - queue num')
+        logger.info("")
         with open(arrivals_fn, newline='\n') as file:
             table = csv.reader(file, delimiter=',', quotechar='"')
             for row in table:
-                self.arrivals.append([int(elem) for elem in row])
+                logger.info("{0:4} - {1:<2}".format(int(row[0]), int(row[1])))
+                self.arrivals.append([int(row[0]), int(row[1])])
+        logger.info('==================\n')
 
         self.change_times = []
+        logger.info('==== change_times ====')
         with open(change_times_fn, newline='\n') as file:
             table = csv.reader(file, delimiter=',', quotechar='"')
             for row in table:
-                self.change_times.append([int(elem) for elem in row])
+                cur_row = [int(elem) for elem in row]
+                logger.info(cur_row)
+                self.change_times.append(cur_row)
+        logger.info('======================\n')
 
+        logger.info('==== work_times ====')
         self.work_times = []
         with open(work_times_fn, newline='\n') as file:
             table = csv.reader(file, delimiter=',', quotechar='"')
             for row in table:
-                self.work_times = [int(elem) for elem in row]
+                cur_row = [int(elem) for elem in row]
+                logger.info(cur_row)
+                self.work_times = cur_row
+        logger.info('=====================\n')
 
     @staticmethod
     def by_num(num: int):

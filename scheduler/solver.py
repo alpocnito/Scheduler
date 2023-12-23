@@ -1,5 +1,9 @@
 from scheduler.events import *
 from scheduler.input_pasrser import *
+from scheduler.common import get_default_logger
+
+logger = get_default_logger(__name__)
+logger.setLevel(logging.INFO)
 
 class Solver:
     change_times_: list[list]
@@ -23,14 +27,14 @@ class Solver:
         self.queues_ = [0] * len(self.work_times_)
 
     def run(self):
-        print(self.events_)
-        print()
-
         while self.events_.size() != 0:
             ev = self.events_.get()
             self.solve_(ev)
-        print("=====================")
-        print(self.events_.history())
+        logger.warning("======== history ========")
+        logger.warning("time : event    queue num")
+        logger.warning("")
+        logger.warning(self.events_.history())
+        logger.warning("=========================")
 
     def solve_(self, event: Event):
         curtime = event.timestamp
@@ -42,10 +46,12 @@ class Solver:
                 time_change = self.change_times_[self.last_queue_][event.qnumber]
                 time_work = self.work_times_[event.qnumber]
 
-                self.events_.change_type_st(curtime, event.qnumber)
-                self.events_.change_type_en(curtime + time_change, event.qnumber)
+                if time_change != 0:
+                    self.events_.change_type_st(curtime, event.qnumber)
+                    self.events_.change_type_en(curtime + time_change, event.qnumber)
                 self.events_.load(curtime + time_change, event.qnumber)
                 self.events_.unload(curtime + time_change + time_work, event.qnumber)
+                self.busy_ = True
                 return
 
         elif event.type == EVENT_CHANGE_TYPE_ST:
@@ -79,6 +85,7 @@ class Solver:
             self.events_.change_type_en(curtime + time_change, qnum)
             self.events_.load(curtime + time_change, qnum)
             self.events_.unload(curtime + time_change + time_work, qnum)
+            self.busy_ = True
             return
         else:
             assert 0, "Unknwown event_type = " + event.type
