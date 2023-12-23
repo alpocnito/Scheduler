@@ -28,13 +28,13 @@ class Event:
             return False
         if other.type == EVENT_CHANGE_TYPE_EN:
             return True
-        if self.type_ == EVENT_CHANGE_TYPE_ST:
-            return False
-        if other.type == EVENT_CHANGE_TYPE_ST:
-            return True
         if self.type_ == EVENT_UNLOAD:
             return False
         if other.type == EVENT_UNLOAD:
+            return True
+        if self.type_ == EVENT_CHANGE_TYPE_ST:
+            return False
+        if other.type == EVENT_CHANGE_TYPE_ST:
             return True
         if self.type_ == EVENT_ARRIVE:
             return False
@@ -120,8 +120,18 @@ class Events:
     def unload(self, timestamp, qnumber):
         new_ev = Event(timestamp, EVENT_UNLOAD, qnumber)
         self.add(new_ev)
-    
+
     def history(self) -> str:
+
+        str_evs = []
+
         self.del_events_.sort()
-        str_evs = [str(ev) for ev in self.del_events_]
+        queues_num = max(self.del_events_, key = lambda ev: ev.qnumber).qnumber
+        cur_queues = [0] * (queues_num + 1)
+        for ev in self.del_events_:
+            if ev.type == EVENT_ARRIVE:
+                cur_queues[ev.qnumber] += 1
+            elif ev.type == EVENT_LOAD:
+                cur_queues[ev.qnumber] -= 1
+            str_evs.append(str(ev) + "        " + str(cur_queues))
         return "\n".join(str_evs)

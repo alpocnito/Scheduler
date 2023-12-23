@@ -30,11 +30,11 @@ class Solver:
         while self.events_.size() != 0:
             ev = self.events_.get()
             self.solve_(ev)
-        logger.warning("======== history ========")
-        logger.warning("time : event    queue num")
+        logger.warning("============ history ============")
+        logger.warning("time : event   queue num   queues")
         logger.warning("")
         logger.warning(self.events_.history())
-        logger.warning("=========================")
+        logger.warning("=================================")
 
     def solve_(self, event: Event):
         curtime = event.timestamp
@@ -81,8 +81,9 @@ class Solver:
             time_change = self.change_times_[self.last_queue_][qnum]
             time_work = self.work_times_[qnum]
 
-            self.events_.change_type_st(curtime, qnum)
-            self.events_.change_type_en(curtime + time_change, qnum)
+            if time_change != 0:
+                self.events_.change_type_st(curtime, qnum)
+                self.events_.change_type_en(curtime + time_change, qnum)
             self.events_.load(curtime + time_change, qnum)
             self.events_.unload(curtime + time_change + time_work, qnum)
             self.busy_ = True
