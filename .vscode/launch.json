@@ -1,0 +1,21 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "name": "scheduler",
+          "type": "python",
+          "request": "launch",
+          "cwd": "/home/ron/dev/test/Scheduler/scheduler",
+          "python": "/home/ron/.cache/pypoetry/virtualenvs/scheduler-Bjw727RS-py3.11/bin/python3",
+          "program": "/home/ron/dev/test/Scheduler/scheduler/__main__.py",
+          "console": "integratedTerminal",
+          "redirectOutput": true,
+          "justMyCode": false,
+          "stopOnEntry": false,
+          "args": []
+        }
+      ]
+}
