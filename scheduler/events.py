@@ -1,13 +1,13 @@
-EVENT_ARRIVE = "arrive"
-EVENT_LOAD = "load"
-EVENT_UNLOAD = "unload"
-EVENT_CHANGE_TYPE_ST = "ch_type_st"
-EVENT_CHANGE_TYPE_EN = "ch_type_en"
-
 class Event:
+    ARRIVE  = "arrive"
+    LOAD    = "load"
+    LOAD_CH = "load ch"
+    UNLOAD  = "unload"
+
+    
     timestamp_: int
 
-    # On of the EVENT_ types
+    # On of the Event. types
     type_: str
 
     # The number of the queue associated with the event
@@ -24,19 +24,15 @@ class Event:
         )
 
     def type_gt_(self, other):
-        if self.type_ == EVENT_CHANGE_TYPE_EN:
+        if self.type_ == Event.UNLOAD:
             return False
-        if other.type == EVENT_CHANGE_TYPE_EN:
+        if other.type == Event.UNLOAD:
             return True
-        if self.type_ == EVENT_UNLOAD:
+        if self.type_ == Event.ARRIVE:
             return False
-        if other.type == EVENT_UNLOAD:
+        if other.type == Event.ARRIVE:
             return True
-        if self.type_ == EVENT_CHANGE_TYPE_ST:
-            return False
-        if other.type == EVENT_CHANGE_TYPE_ST:
-            return True
-        if self.type_ == EVENT_ARRIVE:
+        if self.type_ == Event.LOAD_CH:
             return False
         return True
 
@@ -102,23 +98,19 @@ class Events:
         return ev
 
     def arrive(self, timestamp, number):
-        new_ev = Event(timestamp, EVENT_ARRIVE, number)
+        new_ev = Event(timestamp, Event.ARRIVE, number)
         self.add(new_ev)
 
-    def change_type_st(self, timestamp, qnumber):
-        new_ev = Event(timestamp, EVENT_CHANGE_TYPE_ST, qnumber)
-        self.add(new_ev)
-
-    def change_type_en(self, timestamp, qnumber):
-        new_ev = Event(timestamp, EVENT_CHANGE_TYPE_EN, qnumber)
+    def load_ch(self, timestamp, qnumber):
+        new_ev = Event(timestamp, Event.LOAD_CH, qnumber)
         self.add(new_ev)
 
     def load(self, timestamp, qnumber):
-        new_ev = Event(timestamp, EVENT_LOAD, qnumber)
+        new_ev = Event(timestamp, Event.LOAD, qnumber)
         self.add(new_ev)
 
     def unload(self, timestamp, qnumber):
-        new_ev = Event(timestamp, EVENT_UNLOAD, qnumber)
+        new_ev = Event(timestamp, Event.UNLOAD, qnumber)
         self.add(new_ev)
 
     def history(self) -> str:
@@ -129,9 +121,9 @@ class Events:
         queues_num = max(self.del_events_, key = lambda ev: ev.qnumber).qnumber
         cur_queues = [0] * (queues_num + 1)
         for ev in self.del_events_:
-            if ev.type == EVENT_ARRIVE:
+            if ev.type == Event.ARRIVE:
                 cur_queues[ev.qnumber] += 1
-            elif ev.type == EVENT_LOAD:
+            elif ev.type == Event.LOAD or ev.type == Event.LOAD_CH:
                 cur_queues[ev.qnumber] -= 1
             str_evs.append(str(ev) + "        " + str(cur_queues))
         return "\n".join(str_evs)
