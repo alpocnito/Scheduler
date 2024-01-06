@@ -7,7 +7,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+fire = "^0.5.0"
 
+[tool.poetry.scripts]
+gen_data = "scheduler.scripts:gen_data"
+run_algo = "scheduler.scripts:run_algo"
+profiler = "scheduler.scripts:profiler"
 
 [build-system]
 requires = ["poetry-core"]

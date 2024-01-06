@@ -8,14 +8,14 @@
           "name": "scheduler",
           "type": "python",
           "request": "launch",
-          "cwd": "/home/ron/dev/test/Scheduler/scheduler",
-          "python": "/home/ron/.cache/pypoetry/virtualenvs/scheduler-Bjw727RS-py3.11/bin/python3",
-          "program": "/home/ron/dev/test/Scheduler/scheduler/__main__.py",
+          "cwd": "/home/user/dev/scheduler/scheduler",
+          "python": "/home/user/.cache/pypoetry/virtualenvs/scheduler-AMTnIObz-py3.10/bin/python3",
+          "program": "/home/user/dev/scheduler/scheduler/scripts.py",
           "console": "integratedTerminal",
           "redirectOutput": true,
           "justMyCode": false,
           "stopOnEntry": false,
-          "args": []
+          "args": ["--algo_name=MBrainLike", "--file_tag=1"]
         }
       ]
 }

@@ -1,18 +1,14 @@
-import logging
-
-from events import Event, Events
-from input_pasrser import InputParser
-from common import get_default_logger
-from methods import MBase
-
-logger = get_default_logger(__name__)
-logger.setLevel(logging.INFO)
+from scheduler.events import Event, Events
+from scheduler.input_parser import InputParser
+from scheduler.methods import MBase
 
 class Solver:
     change_times_: list[list]
     work_times_  : list
     events_      : Events
     busy_        : bool
+
+    # number of the last queue being in processed
     last_queue_  : int
     method_      : MBase
 
@@ -27,19 +23,17 @@ class Solver:
         self.last_queue_ = 0
         self.events_ = Events()
         self.method_ = met
-        for ar in self.arrivals_:
-            self.events_.arrive(ar[0], ar[1])
+        self.events_.arrives(self.arrivals_)
         self.queues_ = [0] * len(self.work_times_)
 
-    def run(self):
+    def run(self) -> str:
         while self.events_.size() != 0:
             ev = self.events_.get()
             self.solve_(ev)
-        logger.warning("============ history ============")
-        logger.warning("time : event   queue num   queues")
-        logger.warning("")
-        logger.warning(self.events_.history())
-        logger.warning("=================================")
+        out  = "time : event   queue num   queues\n"
+        out += self.events_.history()
+        print(self.events_.stats())
+        return out
 
     def solve_(self, event: Event):
         curtime = event.timestamp
@@ -47,34 +41,35 @@ class Solver:
             self.queues_[event.qnumber] += 1
             if self.busy_:
                 return
-            
-            qnum = self.method_.decide(self.queues_, self.last_queue_)
+
+            qnum = self.method_.load(self.queues_, self.last_queue_)
             self.start_task_(qnum, curtime)
             self.busy_ = True
             return
 
-        elif event.type == Event.LOAD_CH:
-            self.busy_ = True
-            self.last_queue_ = event.qnumber
-            return
-    
-        elif event.type == Event.LOAD:
+        if event.type == Event.LOAD_CH:
             self.busy_ = True
             self.last_queue_ = event.qnumber
             return
 
-        elif event.type == Event.UNLOAD:
+        if event.type == Event.LOAD:
+            self.busy_ = True
+            self.last_queue_ = event.qnumber
+            return
+
+        if event.type == Event.UNLOAD:
             self.busy_ = False
             self.queues_[event.qnumber] -= 1
+            self.method_.unload(self.queues_)
             if max(self.queues_) == 0:
                 return
 
-            qnum = self.method_.decide(self.queues_, self.last_queue_)
+            qnum = self.method_.load(self.queues_, self.last_queue_)
             self.start_task_(qnum, curtime)
             self.busy_ = True
             return
-        else:
-            assert 0, "Unknwown event_type = " + event.type
+
+        assert 0, "Unknwown event_type = " + event.type
 
     def start_task_(self, qnum: int, curtime: int):
         time_change = self.change_times_[self.last_queue_][qnum]
@@ -84,5 +79,5 @@ class Solver:
             self.events_.load_ch(curtime, qnum)
         else:
             self.events_.load(curtime, qnum)
-        
+
         self.events_.unload(curtime + time_change + time_work, qnum)

@@ -1,6 +1,4 @@
 import logging
-import textwrap
-
 
 class CustomFormatter(logging.Formatter):
     """ Class for colorized and formatted output of logs """

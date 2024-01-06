@@ -2,8 +2,9 @@ import csv
 import logging
 import subprocess
 
-from scheduler.common import get_default_logger
 from random import choices
+
+from scheduler.logging_utils import get_default_logger
 
 logger = get_default_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -123,9 +124,9 @@ class InputGenerator:
 
     def generate_data(self, prob_step, prob_queues, num_samples):
         """
-        prob_step - probability that a request will be generated 
-            in one timestamp. For example, prob_step = 0.5 means that
-            on avarage one request will be generated per two timesteps
+        prob_step - the probability that a request will be generated 
+            at a single timestamp. For example, prob_step = 0.5 means that
+            on avarage one request will be generated in two time steps
         prob_queues - list with probabilities. prob_queues[i] contains the
             probability that a request will be arrived in the i queue.
             sum(prob_queues) must be == 1
