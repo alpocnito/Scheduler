@@ -4,7 +4,6 @@ class Event:
     LOAD_CH = "load ch"
     UNLOAD  = "unload"
 
-    
     timestamp_: int
 
     # On of the Event. types
@@ -69,8 +68,11 @@ class Event:
 
 
 class Events:
+    # futher events
     events_ = []
-    del_events_ = []
+
+    # already analyzed events
+    done_events_ = []
 
     def __repr__(self) -> str:
         str_evs = [str(ev) for ev in self.events_]
@@ -93,9 +95,14 @@ class Events:
 
     def get(self) -> Event:
         ev = self.events_[0]
-        self.del_events_.append(ev)
+        self.done_events_.append(ev)
         self.events_.remove(ev)
         return ev
+
+    def arrives(self, arrives):
+        for timestamp, number in arrives:
+            new_ev = Event(timestamp, Event.ARRIVE, number)
+            self.events_.append(new_ev)
 
     def arrive(self, timestamp, number):
         new_ev = Event(timestamp, Event.ARRIVE, number)
@@ -114,16 +121,48 @@ class Events:
         self.add(new_ev)
 
     def history(self) -> str:
+        """
+        Returns the entire history of analyzed events
+        """
+
+        self.done_events_.sort()
+        queues_num = self._get_queues_num()
+        cur_queues = [0] * (queues_num + 1)
 
         str_evs = []
-
-        self.del_events_.sort()
-        queues_num = max(self.del_events_, key = lambda ev: ev.qnumber).qnumber
-        cur_queues = [0] * (queues_num + 1)
-        for ev in self.del_events_:
+        for ev in self.done_events_:
             if ev.type == Event.ARRIVE:
                 cur_queues[ev.qnumber] += 1
             elif ev.type == Event.LOAD or ev.type == Event.LOAD_CH:
                 cur_queues[ev.qnumber] -= 1
             str_evs.append(str(ev) + "        " + str(cur_queues))
         return "\n".join(str_evs)
+
+    def stats(self) -> list:
+        """
+        Returns statistics
+        """
+        self.done_events_.sort()
+        queues_num = self._get_queues_num()
+        cur_queues = [0] * (queues_num + 1)
+        sum_queues = [0] * (queues_num + 1)
+
+        last_timestamp = 0
+        for ev in self.done_events_:
+            if ev.timestamp != last_timestamp:
+                # Element-wise sum
+                sum_queues = [a + b for a, b in zip(cur_queues, sum_queues)]
+                last_timestamp = ev.timestamp
+
+            if ev.type == Event.ARRIVE:
+                cur_queues[ev.qnumber] += 1
+            if ev.type in (Event.LOAD, Event.LOAD_CH):
+                cur_queues[ev.qnumber] -= 1
+
+        # Element-wise div
+        sum_queues = [a / float(last_timestamp) for a in sum_queues]
+        return [sum_queues, last_timestamp]
+
+
+    def _get_queues_num(self) -> int:
+        return max(self.done_events_, key = lambda ev: ev.qnumber).qnumber

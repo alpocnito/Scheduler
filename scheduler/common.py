@@ -27,16 +27,31 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def get_default_logger(name: str):
+def get_default_logger(logger_name: str):
     """
-    TODO missing-function-docstring
+    Returns logger with the CustomFormatter and out in the stdout
     """
 
     handler = logging.StreamHandler()
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(CustomFormatter())
 
-    logger = logging.getLogger(name)
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+    return logger
+
+def get_file_logger(logger_name: str, file_name: str):
+    """
+    Returns logger with the CustomFormatter and out in the file
+    """
+
+    handler = logging.FileHandler(file_name)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(CustomFormatter())
+
+    logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
 
