@@ -140,7 +140,7 @@ class Events:
 
     def stats(self) -> list:
         """
-        Returns statistics
+        Returns brief statistics
         """
         self.done_events_.sort()
         queues_num = self._get_queues_num()
@@ -163,6 +163,26 @@ class Events:
         sum_queues = [a / float(last_timestamp) for a in sum_queues]
         return [sum_queues, last_timestamp]
 
+    def queues_distrib(self) -> list:
+        """
+        Returns distribution of queues in each timestamp
+        """
+        self.done_events_.sort()
+        queues_num = self._get_queues_num()
+        cur_queues = [0] * (queues_num + 1)
+        hist_queues = [[0] * (queues_num + 1)]
+
+        last_timestamp = 0
+        for ev in self.done_events_:
+            for _ in range(last_timestamp, ev.timestamp):
+                hist_queues.append(cur_queues.copy())
+            last_timestamp = ev.timestamp
+
+            if ev.type == Event.ARRIVE:
+                cur_queues[ev.qnumber] += 1
+            if ev.type in (Event.LOAD, Event.LOAD_CH):
+                cur_queues[ev.qnumber] -= 1
+        return hist_queues
 
     def _get_queues_num(self) -> int:
         return max(self.done_events_, key = lambda ev: ev.qnumber).qnumber

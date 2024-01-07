@@ -15,7 +15,7 @@
           "redirectOutput": true,
           "justMyCode": false,
           "stopOnEntry": false,
-          "args": ["--algo_name=MBrainLike", "--file_tag=1"]
+          "args": ["--algo_name=MBrainLike", "--file_tag=3"]
         }
       ]
 }

@@ -19,7 +19,7 @@ def run_algo_impl(algo_name: str, file_tag: int):
     """
     if algo_name not in METHODS:
         logger.critical("Unknown algorithm: " + algo_name)
-        return
+        return []
 
     ina = InputParser.by_tag(file_tag, False)
     met = METHODS[algo_name](ina)
@@ -27,6 +27,7 @@ def run_algo_impl(algo_name: str, file_tag: int):
     out = sol.run()
     with open(ina.get_out_filename(), 'w') as f:
         print(out, file=f)
+    return out
 
 def run_algo():
     fire.Fire(run_algo_impl)

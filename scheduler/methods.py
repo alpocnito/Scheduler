@@ -1,5 +1,6 @@
 import logging
 import random
+import math
 
 from abc import ABC, abstractmethod
 
@@ -25,6 +26,13 @@ class MBase(ABC):
         """
         pass
 
+    @abstractmethod
+    def end(self):
+        """
+        Executed at the end of the algorithm
+        """
+        pass
+
 class MRandom(MBase):
     """
     On each iteration select random queue and load task from it
@@ -47,9 +55,9 @@ class MRandom(MBase):
         return numbered_queues[0][0]
 
     def unload(self, queues):
-        """
-        Queue states after unloading
-        """
+        pass
+
+    def end(self):
         pass
 
 class MSmart(MBase):
@@ -79,9 +87,9 @@ class MSmart(MBase):
         return numbered_ch_times[0][0]
 
     def unload(self, queues):
-        """
-        Queue states after unloading
-        """
+        pass
+
+    def end(self):
         pass
 
 class State:
@@ -100,8 +108,11 @@ class State:
     num_elements_: int
 
     def __init__(self, queues, last_queue):
-        self.num_elements_ = len(queues)
-        self.elems_proportion_ = [elems / len(queues) for elems in queues]
+        self.num_elements_ = sum(queues)
+        if self.num_elements_ == 0:
+            self.elems_proportion_ = [0] * len(queues)
+        else:
+            self.elems_proportion_ = [elems / sum(queues) for elems in queues]
         self.last_queue_ = last_queue
 
     def __eq__(self, rhs) -> bool:
@@ -118,19 +129,46 @@ class State:
             return -1
 
         ALPHA = 1.0
-        BETA  = 1.0
+        BETA  = 2.0
         GAMMA = 0.01
 
         dist_elems_proportion = ALPHA * sum(
             abs(el1 - el2) ** BETA for el1, el2 in zip(st1.elems_proportion_, st2.elems_proportion_)
         )
-        dist_total_elems = GAMMA * abs(st1.num_elements_ - st2.num_elements_)
+        rise_threshold = 10 ** len(st1.elems_proportion)
+        if st1.num_elements_ < rise_threshold or st2.num_elements_ < rise_threshold:
+            diff = abs(st1.num_elements_ - st2.num_elements_)
+            if diff == 0:
+                dist_total_elems = 0
+            else:
+                dist_total_elems = GAMMA * diff
+        else:
+            dist_total_elems = 0
 
-        return dist_elems_proportion + dist_total_elems
+        return dist_elems_proportion #+ dist_total_elems
 
     @property
-    def num_elements(self) -> int:
+    def elems_proportion(self) -> int:
+        return self.elems_proportion_
+
+    @property
+    def num_elements(self) -> list:
         return self.num_elements_
+
+    @property
+    def last_queue(self) -> list:
+        return self.last_queue_
+
+    class prettyfloat(float):
+        def __repr__(self):
+            return "%1.2f" % self
+
+    def __str__(self) -> str:
+        return "{:3} < [{}] ({})".format(
+            str(self.num_elements_),
+            ", ".join(f'{x:.2f}' for x in self.elems_proportion_),
+            str(self.last_queue_)
+        )
 
 class Remember:
     """
@@ -138,7 +176,7 @@ class Remember:
     """
 
     # current_res = new_res * RESULTS_UPDATE_RATE + (1 - RESULTS_UPDATE_RATE) * old_res
-    RESULTS_UPDATE_RATE = 0.2
+    RESULTS_UPDATE_RATE = 0.1
 
     # Memory creation time
     timestamp_: int
@@ -169,6 +207,11 @@ class Remember:
                self.action_ == rhs.action_ and \
                self.result_ == rhs.result_
 
+    def __str__(self) -> str:
+        return "{0:5}: {1} => {2} => ({3:1.2f})".format(
+            str(self.timestamp_), str(self.state_before_), str(self.action_), self.result_
+        )
+
     @property
     def state_before(self) -> int:
         return self.state_before_
@@ -194,10 +237,13 @@ class Memory:
     Contains Remembers
     """
     # if distance(state1, state2) < EQUAL_THRESHOLD then state1 == state2
-    EQUAL_THRESHOLD = 0.5
+    EQUAL_THRESHOLD = 0.2
     # if distance(state1, state2) < SIMILAR_THRESHOLD then state1 is similar to the state2
-    SIMILAR_THRESHOLD = 1.0
-    REMEMBER_LIFETIME = 1000
+    SIMILAR_THRESHOLD = 0.4
+    REMEMBER_LIFETIME = 10000000
+
+    # Used for selecting Remembers with not better result. Higher value means less risk
+    LAMBDA_EXPOVARIATE = 2
 
     memory_: list[Remember]
     queues_num_: int
@@ -209,11 +255,21 @@ class Memory:
     def __len__(self):
         return len(self.memory_)
 
+    def __str__(self) -> str:
+        strr = "=============== MEMORY ===============\n"
+        sortt = sorted(self.memory_, key=lambda rem: (2**rem.state_before.last_queue) * (3**rem.action))
+        for rem in sortt:
+            strr += str(rem) + "\n"
+        strr += "======================================\n\n"
+        return strr
+
     def add_remember(self, new_rem: Remember):
         memory = self.get_sorted_memory(new_rem.state_before)
 
         for i, rem in enumerate(memory):
             distance_states_before = State.distance(new_rem.state_before, rem.state_before)
+
+            assert distance_states_before != -1
 
             if distance_states_before <= Memory.EQUAL_THRESHOLD and new_rem.action == rem.action:
                 self.memory_[i].add_new_result(rem.result, rem.timestamp)
@@ -229,7 +285,10 @@ class Memory:
         ans = 0
         for rem in self.memory_:
             dist = State.distance(rem.state_before_, state_before)
-            if dist == -1:
+            if dist == -1 or dist > Memory.SIMILAR_THRESHOLD:
+                continue
+            # Cannot execute action
+            if state_before.elems_proportion[rem.action] == 0:
                 continue
             ans += 1
         return ans
@@ -240,6 +299,9 @@ class Memory:
         for rem in self.memory_:
             dist = State.distance(rem.state_before, base_state_before)
             if dist == -1:
+                continue
+            # Cannot execute action
+            if base_state_before.elems_proportion[rem.action] == 0:
                 continue
             mem_with_distance.append([dist, rem])
 
@@ -268,15 +330,26 @@ class Memory:
         similar_memory.append(memory[0])
 
         for i in range(1, len(memory)):
-            if State.distance(memory[i].state_before, state_before) <= Memory.SIMILAR_THRESHOLD:
+            dist = State.distance(memory[i].state_before, state_before)
+            assert dist != -1
+            if dist <= Memory.SIMILAR_THRESHOLD:
                 similar_memory.append(memory[i])
+
+        similar_memory.sort(key=lambda rem: 1-rem.result)
+        threshold = random.expovariate(Memory.LAMBDA_EXPOVARIATE)
+
+        rem_index = 0
+        for i, rem in enumerate(similar_memory):
+            if threshold >= 1-rem.result:
+                rem_index = i
             else:
                 break
 
-        similar_memory.sort(key=lambda rem: -rem.result)
-        number = min(int(random.expovariate(1)), len(similar_memory) - 1)
+        # for rem in similar_memory:
+        #     print("{:1.2f}".format(1-rem.result), end=" ")
+        # print("->", threshold, similar_memory[rem_index])
 
-        return similar_memory[number]
+        return similar_memory[rem_index]
 
 class MBrainLike(MBase):
     change_times_: list[list]
@@ -292,7 +365,7 @@ class MBrainLike(MBase):
     last_rem_            : Remember
 
     # Probability of creating a new Remember
-    CREATE_PROB = 0.2
+    CREATE_PROB = 0.01
 
     def __init__(self, ip: InputParser):
         self.change_times_ = ip.change_times
@@ -302,26 +375,32 @@ class MBrainLike(MBase):
         self.memory_size_ = 10 ** (self.num_queues_)
         self.timestamp_ = 0
 
-    def random_action(self) -> int:
-        action = random.randrange(0, self.num_queues_)
+    def random_action(self, queues) -> int:
+
+        # get not empty queues
+        numbered_queues = list(enumerate(queues))
+        numbered_queues = list(filter(lambda elem: elem[1] != 0, numbered_queues))
+
+        action = numbered_queues[random.randrange(0, len(numbered_queues))][0]
+
         self.created_new_remember_ = True
         self.last_action_ = action
         return action
 
     def load(self, queues, last_queue):
         assert max(queues) != 0
-
+        #(queues, end=" ")
         state_before = State(queues, last_queue)
         self.last_state_before_ = state_before
 
         # Absolutely new Remember
         if self.memory_.find_alike(state_before) == 0:
-            return self.random_action()
+            return self.random_action(queues)
 
         # We tend to create new Remembers if our memory is not full
-        if len(self.memory_) != self.memory_size_:
-            if random.random() <= MBrainLike.CREATE_PROB:
-                return self.random_action()
+        # if len(self.memory_) != self.memory_size_:
+        #     if random.random() <= MBrainLike.CREATE_PROB:
+        #         return self.random_action(queues)
 
         # Select an existing Remember
         rem = self.memory_.get_action(state_before)
@@ -331,6 +410,11 @@ class MBrainLike(MBase):
         return rem.action
 
     def unload(self, queues):
+        for queue in queues:
+            assert queue >= 0
+
+        #print(self.last_action_)
+
         state_after = State(queues, self.last_action_)
         rem = Remember(self.timestamp_, self.last_state_before_, state_after, self.last_action_)
 
@@ -339,9 +423,15 @@ class MBrainLike(MBase):
         else:
             self.memory_.update_res(self.last_rem_, rem)
 
+        # if len(self.memory_) > 3:
+        #     print(self.memory_)
+        #     pass
+
         self.memory_.renew(self.timestamp_)
         self.timestamp_ += 1
 
+    def end(self):
+        print(self.memory_)
 METHODS = {
     "MRandom" : MRandom,
     "MSmart" : MSmart,

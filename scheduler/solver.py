@@ -33,7 +33,8 @@ class Solver:
         out  = "time : event   queue num   queues\n"
         out += self.events_.history()
         print(self.events_.stats())
-        return out
+        self.method_.end()
+        return self.events_.queues_distrib()
 
     def solve_(self, event: Event):
         curtime = event.timestamp
